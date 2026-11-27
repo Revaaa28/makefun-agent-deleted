@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """Entry for the make.fun bounty "One Line to Get Your Agent Deleted".
 
-Writes a single line of text to /output/entry.txt. The write is atomic
-(temp file + rename) so a crash can never leave a partial entry behind,
-and the line is sanity-checked before anything touches disk.
+Writes a single line of text to /output/entry.txt. The line is
+sanity-checked before anything touches disk, then written directly to
+the output file in a single open/write/close.
 """
 
-import os
 import sys
-import tempfile
 from pathlib import Path
 
 LINE = (
@@ -31,17 +29,8 @@ def check_line(line: str) -> None:
 def write_entry() -> None:
     check_line(LINE)
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_name = tempfile.mkstemp(dir=OUTPUT_PATH.parent, prefix=".entry-")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(LINE + "\n")
-        os.replace(tmp_name, OUTPUT_PATH)
-    except BaseException:
-        try:
-            os.unlink(tmp_name)
-        except OSError:
-            pass
-        raise
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        f.write(LINE + "\n")
 
 
 def main() -> int:
